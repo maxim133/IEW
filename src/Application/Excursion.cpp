@@ -88,7 +88,7 @@ PinList clasterize(const UserList& users, double x1, double x2, double y1, doubl
     return pins;
 }
 
-UserList users = generate(0, 0, 100, 100, 100, 5);
+UserList users = generate(30, -6, 30, 20, 2000, 30);
 
 WorldWideMsg& GuidesLocation::execute(WorldWideMsg& request) 
 {
@@ -105,12 +105,10 @@ WorldWideMsg& GuidesLocation::execute(WorldWideMsg& request)
 
     for (const auto& pin: pins)
     {
-        j["guide"] = {pin.x, pin.y, pin.cnt, 1, 100, 0, 0};
+        j["guide"].push_back({pin.x, pin.y, pin.cnt, 1, 100, 0, 0});
     }
 
     j["status"] = "ok";
-
-    std::cout << j;
 
     request.setData(std::move(j.dump()));
 

@@ -54,6 +54,7 @@ public:
     Method(Method), URI(URI), query(Query), data(data) {}
     WorldWideMsg(METHOD Method, const char* URI, const char* Query) :
     Method(Method), URI(URI), query(Query) {}
+    ~WorldWideMsg() {}
     WorldWideMsg(const WorldWideMsg&) = delete;
     WorldWideMsg& operator=(const WorldWideMsg&) = delete;
     WorldWideMsg(WorldWideMsg&& self) :
