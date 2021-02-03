@@ -5,12 +5,13 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/src/",
-                "${workspaceFolder}/src/Application/"
+                "${workspaceFolder}/src/Application/",
+                "/usr/include/mysql-cppconn-8/mysqlx/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
-            "cStandard": "gnu17",
-            "cppStandard": "gnu++17",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
             "intelliSenseMode": "gcc-x64",
             "compileCommands": "${workspaceFolder}/build/compile_commands.json"
         }

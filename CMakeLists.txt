@@ -30,6 +30,17 @@ endif(FCGI_LIB)
 
 target_link_libraries(${PROJECT_NAME} ${FCGI_LIB})
 
+find_library(MYSQL_LIB NAMES mysqlcppconn8 PATHS ${LIBPATH})
+if(MYSQL_LIB)
+	message(STATUS "MySQL Connector 8.0 found at ${MYSQL_LIB}")
+else(MYSQL_LIB)
+	message( FATAL_ERROR "MySQL Connector 8.0 not found. Please install MySQL Connector 8.0")
+endif(MYSQL_LIB)
+
+target_link_libraries(${PROJECT_NAME} ${MYSQL_LIB})
+
+include_directories("/usr/include/mysql-cppconn-8/mysqlx/")
+
 find_package(Threads REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})

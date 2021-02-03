@@ -12,7 +12,8 @@ private:
 public:
     friend void ApplicationThread(ApplicationWorker* self);
     ApplicationWorker() = delete;
-    ApplicationWorker(WorldWideInterface* ClientInterface, CommandParser& commandParser);
+    ApplicationWorker(WorldWideInterface* ClientInterface,
+      CommandParser& commandParser);
     void start(int threadCount = 1);
 };
 

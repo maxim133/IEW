@@ -5,6 +5,7 @@
 #include <map>
 #include <iostream>
 #include <cstring>
+#include "DiagnosticInformation.h"
 
 #define MAX_ContentLength 4096
 
@@ -76,8 +77,20 @@ WorldWideMsg FastCgiProcessor::getRequest()
 
 void FastCgiProcessor::setResponse(const WorldWideMsg& resp) 
 {
-    FCGX_PutS("Content-type: application/json\r\n", request.out);
-    FCGX_PutS("\r\n", request.out);
+    switch (resp.getStatusCode())
+    {
+    case 200:
+        FCGX_PutS(header200, request.out);
+        break;
+    case 403:
+        FCGX_PutS(header403, request.out);
+        break;
+    case 404:
+        FCGX_PutS(header404, request.out);
+        break;  
+    default:
+        break;
+    }
 
     const std::string& data = resp.getData();
     FCGX_PutStr(data.c_str(), data.size(), request.out);

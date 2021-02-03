@@ -40,11 +40,21 @@ public:
     {
         return Params.at(name);
     }
+    bool contains(const std::string name) const
+    {
+        if (Params.find(name) == Params.end())
+        {
+            return false;
+        } 
+
+        return true;
+    }
 };
 
 class WorldWideMsg
 {
 private:
+    uint16_t StatusCode;
     METHOD Method;
     std::string URI;
     Query query;
@@ -78,6 +88,8 @@ public:
     const std::string& getData() const {return data;}
     const std::string& getPath() const {return URI;}
     const Query& getQuery() const {return query;}
+    void setStatusCode(uint16_t code) {StatusCode = code;}
+    uint16_t getStatusCode() const {return StatusCode;}
 };
 
 class WorldWideInterface
