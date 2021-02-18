@@ -3,6 +3,7 @@
 #include "CommandParser.h"
 #include "Excursion.h"
 #include "Authorization.h"
+#include "Registration.h"
 
 #include <unistd.h>
 
@@ -24,11 +25,14 @@ int main(int, char**)
     DataBaseAccess DataBaseInterface(DataBaseInterfaceConfig);
 
     CommandParser commandParser;
-    Command* ShowGuides = new GuidesLocation();
-    commandParser.addCommandParser("/guides/show", ShowGuides);
+    Command* showGuides = new GuidesLocation();
+    commandParser.addCommandParser("/guides/show", showGuides);
 
-    Command* Authorization = new getAuthorization(DataBaseInterface);
-    commandParser.addCommandParser("/auth", Authorization);
+    Command* authorization = new getAuthorization(DataBaseInterface);
+    commandParser.addCommandParser("/auth", authorization);
+
+    Command* registration = new Registration(DataBaseInterface);
+    commandParser.addCommandParser("/registration", registration);
 
     ApplicationWorker application(ApplicationClientInterface, commandParser);
 

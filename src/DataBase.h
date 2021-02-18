@@ -34,6 +34,9 @@ private:
 public:
     DataBaseInterface(const std::string address);
     User getUserProfile(uint64_t uid);
+    User getUserProfile(const std::string& email);
+    void addUserProfile(const User& user);
+    void UpdateSessionID(uint64_t uid, uint64_t sid);
 };
 
 class DataBaseAccess

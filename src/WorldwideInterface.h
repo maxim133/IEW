@@ -60,7 +60,7 @@ private:
     Query query;
     std::string data;
 public:
-    WorldWideMsg(METHOD Method, const char* URI, const char* Query, std::string data) :
+    WorldWideMsg(METHOD Method, const char* URI, const char* Query, const char* data) :
     Method(Method), URI(URI), query(Query), data(data) {}
     WorldWideMsg(METHOD Method, const char* URI, const char* Query) :
     Method(Method), URI(URI), query(Query) {}

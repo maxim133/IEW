@@ -6,6 +6,7 @@
 #include <iostream>
 #include <cstring>
 #include "DiagnosticInformation.h"
+#include <stdlib.h>
 
 #define MAX_ContentLength 4096
 
@@ -50,24 +51,24 @@ WorldWideMsg FastCgiProcessor::getRequest()
     METHOD MethodType = METHOD_TypeConverter.at(REQUEST_METHOD_str);
 
     const char* URI = FCGX_GetParam("SCRIPT_FILENAME", request.envp);
-
     const char* Query = FCGX_GetParam("QUERY_STRING", request.envp);
-
     const char* ContentLength = FCGX_GetParam("CONTENT_LENGTH", request.envp);
+    int size = atoi(ContentLength);
     
-    if (*ContentLength != 0)
+    if (size > 0)
     {
+        char buffer[512];
+
         int size = atoi(ContentLength);
 
-        if (size > MAX_ContentLength)
+        if ((size+1) > sizeof(buffer))
         {
             throw std::runtime_error("Content Length value is to long");
         }
 
-        std::string buffer;
-        buffer.reserve(size);
+        FCGX_GetStr(buffer, size, request.in);
 
-        FCGX_GetStr(buffer.data(), size, request.in);
+        buffer[size] = '\0';
 
         return WorldWideMsg(MethodType, URI, Query, buffer);
     }
@@ -89,6 +90,7 @@ void FastCgiProcessor::setResponse(const WorldWideMsg& resp)
         FCGX_PutS(header404, request.out);
         break;  
     default:
+        FCGX_PutS(header404, request.out);
         break;
     }
 

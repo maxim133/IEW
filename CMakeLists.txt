@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(IEW VERSION 0.1.0)
 
+set(CMAKE_C_COMPILER "/bin/x86_64-linux-gnu-gcc")
+set(CMAKE_CXX_COMPILER "/bin/x86_64-linux-gnu-g++")
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -29,6 +32,15 @@ else(FCGI_LIB)
 endif(FCGI_LIB)
 
 target_link_libraries(${PROJECT_NAME} ${FCGI_LIB})
+
+find_library(CURL_LIB NAMES curl PATHS ${LIBPATH})
+if(CURL_LIB)
+	message(STATUS "curl found at ${CURL_LIB}. curl support is compiled in.")
+else(CURL_LIB)
+	message( FATAL_ERROR "curl not found. Please install curl")
+endif(CURL_LIB)
+
+target_link_libraries(${PROJECT_NAME} ${CURL_LIB})
 
 find_library(MYSQL_LIB NAMES mysqlcppconn8 PATHS ${LIBPATH})
 if(MYSQL_LIB)
