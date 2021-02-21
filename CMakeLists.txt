@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(IEW VERSION 0.1.0)
 
-set(CMAKE_C_COMPILER "/bin/x86_64-linux-gnu-gcc")
-set(CMAKE_CXX_COMPILER "/bin/x86_64-linux-gnu-g++")
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -21,6 +18,20 @@ include_directories("src/Application/")
 file(GLOB_RECURSE SOURCES LIST_DIRECTORIES true ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
 add_executable(IEW ${SOURCES})
+
+include(FetchContent)
+
+FetchContent_Declare(json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG v3.9.1)
+
+FetchContent_GetProperties(json)
+if(NOT json_POPULATED)
+  FetchContent_Populate(json)
+   add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
 SET(LIBPATH /usr/lib /usr/local/lib)
 
@@ -56,20 +67,6 @@ include_directories("/usr/include/mysql-cppconn-8/mysqlx/")
 find_package(Threads REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} ${CMAKE_THREAD_LIBS_INIT})
-
-include(FetchContent)
-
-FetchContent_Declare(json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG v3.9.1)
-
-FetchContent_GetProperties(json)
-if(NOT json_POPULATED)
-  FetchContent_Populate(json)
-  add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
-
-target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
