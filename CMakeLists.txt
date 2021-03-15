@@ -9,15 +9,14 @@ if(NOT CMAKE_CXX_EXTENSIONS)
     set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
-include(CTest)
-enable_testing()
+add_definitions(-DLIBUS_NO_SSL)
+add_definitions(-DWITH_LIBDEFLATE=1)
+add_definitions(-DELPP_DEBUG_ERRORS)
 
 include_directories("src/")
 include_directories("src/Application/")
-
-file(GLOB_RECURSE SOURCES LIST_DIRECTORIES true ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
-
-add_executable(IEW ${SOURCES})
+include_directories("External/uWebSockets/src")
+include_directories("External/uWebSockets/uSockets/src")
 
 include(FetchContent)
 
@@ -31,9 +30,45 @@ if(NOT json_POPULATED)
    add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
+FetchContent_Declare(easyloggingpp
+  GIT_REPOSITORY https://github.com/amrayn/easyloggingpp.git
+  GIT_TAG v9.97.0)
+
+FetchContent_GetProperties(easyloggingpp)
+if(NOT easyloggingpp_POPULATED)
+  	FetchContent_Populate(easyloggingpp)
+	add_subdirectory(${easyloggingpp_SOURCE_DIR} ${easyloggingpp_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+include_directories("${easyloggingpp_SOURCE_DIR}/src")
+
+file(GLOB_RECURSE SOURCES LIST_DIRECTORIES true ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE USOCKETS LIST_DIRECTORIES true ${CMAKE_CURRENT_SOURCE_DIR}/External/uWebSockets/uSockets/src/*.c)
+file(GLOB_RECURSE LOGGING LIST_DIRECTORIES true ${easyloggingpp_SOURCE_DIR}/src/*.cc)
+
+add_executable(IEW ${SOURCES} ${USOCKETS} ${LOGGING})
+
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
-SET(LIBPATH /usr/lib /usr/local/lib)
+SET(LIBPATH /usr/lib /usr/local/lib /lib/x86_64-linux-gnu) 
+
+find_library(Z_LIB NAMES z PATHS ${LIBPATH})
+if(Z_LIB)
+	message(STATUS "z found at ${Z_LIB}")
+else(Z_LIB)
+	message( FATAL_ERROR "z not found. Please install z")
+endif(Z_LIB)
+
+target_link_libraries(${PROJECT_NAME} ${Z_LIB})
+
+find_library(DEFLATE_LIB NAMES deflate PATHS ${LIBPATH})
+if(DEFLATE_LIB)
+	message(STATUS "libdeflate found at ${DEFLATE_LIB}")
+else(DEFLATE_LIB)
+	message( FATAL_ERROR "libdeflate not found. Please install libdeflate")
+endif(DEFLATE_LIB)
+
+target_link_libraries(${PROJECT_NAME} ${DEFLATE_LIB})
 
 find_library(FCGI_LIB NAMES fcgi PATHS ${LIBPATH})
 if(FCGI_LIB)

@@ -114,3 +114,272 @@ WorldWideMsg& GuidesLocation::execute(WorldWideMsg& request)
 
     return request;
 }
+
+void ExcursionUser::send(std::string_view msg) 
+{
+    Socket->send(msg, uWS::OpCode::TEXT);
+}
+
+void ExcursionUser::async_send(std::string_view msg) 
+{
+    loop->defer([this, msg]() 
+    {
+        Socket->send(msg, uWS::OpCode::TEXT);            
+    });
+}
+
+Traveler::Traveler(Excursion* excursion) : ExcursionUser(excursion)
+{
+    Trace = el::Loggers::getLogger(excursion->get_eid() + "__T");
+
+    el::Configurations Config;
+    Config.setToDefault();
+    Config.setGlobally(el::ConfigurationType::Filename, std::string("excursions/" + excursion->get_eid() + "/TravelTrace.log"));
+    Config.setGlobally(el::ConfigurationType::ToFile, std::string("true"));
+    Config.set(el::Level::Info,
+            el::ConfigurationType::Format, "%datetime %msg");
+    Trace->configure(Config);
+}
+
+bool ExcursionUser::isValid() 
+{
+    return (Listener && Socket);
+}
+
+ExcursionUser::ExcursionUser(Excursion* excursion) : excursion(excursion)
+{
+    
+}
+
+void TravelerWorker(Traveler* self)
+{
+    self->loop = uWS::Loop::get();
+    Excursion* excursion = self->excursion;
+    self->Listener = new uWS::App();
+    auto* logger = self->Trace;
+
+    self->Listener->ws<PerSocketData>("/traveler/" + self->excursion->get_eid(), 
+    {
+            .compression = uWS::SHARED_COMPRESSOR,
+            .maxPayloadLength = 80 * 1024,
+            .idleTimeout = 120,
+            .maxBackpressure = 1 * 1024 * 1024,
+            .upgrade = [](auto *res, auto *req, auto *context) {
+
+                std::cout << "Traveler upgrade handler" << std::endl;
+
+            /* You may read from req only here, and COPY whatever you need into your PerSocketData.
+             * PerSocketData is valid from .open to .close event, accessed with ws->getUserData().
+             * HttpRequest (req) is ONLY valid in this very callback, so any data you will need later
+             * has to be COPIED into PerSocketData here. */
+
+            /* Immediately upgrading without doing anything "async" before, is simple */
+                res->template upgrade<PerSocketData>({
+                /* We initialize PerSocketData struct here */
+                    
+                }, req->getHeader("sec-websocket-key"),
+                    req->getHeader("sec-websocket-protocol"),
+                    req->getHeader("sec-websocket-extensions"),
+                    context);
+
+                /* If you don't want to upgrade you can instead respond with custom HTTP here,
+                * such as res->writeStatus(...)->writeHeader(...)->end(...); or similar.*/
+
+                /* Performing async upgrade, such as checking with a database is a little more complex;
+                * see UpgradeAsync example instead. */
+            },
+            .open = [&](uWS::WebSocket<false, true>* ws) 
+            {
+                std::cout << "Traveler " << ws->getRemoteAddressAsText() << " opened the websocket" << std::endl;
+                
+                self->Socket = ws;
+                json status;
+
+                if (excursion->isValid())
+                {
+                    status["status"] = "ok";
+                }
+                else
+                {
+                    status["status"] = "guide not ready";
+                }
+
+                self->send(status.dump());
+            },
+            .message = [&](auto* ws, std::string_view message, uWS::OpCode opCode) 
+            {
+                json status;
+
+                std::cout << "Traveler: " << message << std::endl;
+
+                if (!excursion->isValid())
+                {
+                    status["status"] = "guide not ready";
+                    self->send(status.dump());
+
+                    return;
+                }
+
+                excursion->sendtoGuide(message);
+                logger->info(message);
+            },
+            .drain = [](auto */*ws*/) {
+                    /* Check getBufferedAmount here */
+                std::cout << "Drain " << std::endl;
+            },
+
+            .close = [&](auto */*ws*/, int /*code*/, std::string_view /*message*/) 
+            {
+                    std::cout << "Close " << std::endl;
+
+                    self->Socket = nullptr;
+            }
+            }).listen(9001, [](auto *listen_socket) 
+            {
+                if (listen_socket) {
+                    std::cout << "Thread " << std::this_thread::get_id() << " listening on port " << 9001 << std::endl;
+                } else {
+                    std::cout << "Thread " << std::this_thread::get_id() << " failed to listen on port 9001" << std::endl;
+                }
+    }).run();
+}
+
+void Traveler::run() 
+{
+    Worker = new std::thread(TravelerWorker, this);
+    Worker->detach();
+}
+
+Guide::Guide(Excursion* excursion) : ExcursionUser(excursion)
+{
+    Trace = el::Loggers::getLogger(excursion->get_eid() + "__G");
+    el::Configurations Config;
+    Config.setToDefault();
+    Config.setGlobally(el::ConfigurationType::Filename, std::string("excursions/" + excursion->get_eid() + "/GuideTrace.log"));
+    Config.setGlobally(el::ConfigurationType::ToFile, std::string("true"));
+    Config.set(el::Level::Info,
+            el::ConfigurationType::Format, "%datetime %msg");
+    Trace->configure(Config);
+}
+
+void GuideWorker(Guide* self)
+{
+    self->loop = uWS::Loop::get();
+    Excursion* excursion = self->excursion;
+    self->Listener = new uWS::App();
+    auto* logger = self->Trace;
+
+    self->Listener->ws<PerSocketData>("/guide/" + self->excursion->get_eid(), 
+    {
+            .compression = uWS::SHARED_COMPRESSOR,
+            .maxPayloadLength = 80 * 1024,
+            .idleTimeout = 120,
+            .maxBackpressure = 1 * 1024 * 1024,
+            .upgrade = [](auto *res, auto *req, auto *context) {
+
+                std::cout << "Guide upgrade handler" << std::endl;
+
+            /* You may read from req only here, and COPY whatever you need into your PerSocketData.
+             * PerSocketData is valid from .open to .close event, accessed with ws->getUserData().
+             * HttpRequest (req) is ONLY valid in this very callback, so any data you will need later
+             * has to be COPIED into PerSocketData here. */
+
+            /* Immediately upgrading without doing anything "async" before, is simple */
+                res->template upgrade<PerSocketData>({
+                /* We initialize PerSocketData struct here */
+                    
+                }, req->getHeader("sec-websocket-key"),
+                    req->getHeader("sec-websocket-protocol"),
+                    req->getHeader("sec-websocket-extensions"),
+                    context);
+
+                /* If you don't want to upgrade you can instead respond with custom HTTP here,
+                * such as res->writeStatus(...)->writeHeader(...)->end(...); or similar.*/
+
+                /* Performing async upgrade, such as checking with a database is a little more complex;
+                * see UpgradeAsync example instead. */
+            },
+            .open = [&](uWS::WebSocket<false, true>* ws) 
+            {
+                std::cout << "Guide " << ws->getRemoteAddressAsText() << " opened the websocket" << std::endl;
+                self->Socket = ws;
+                json status;
+
+                if (excursion->isValid())
+                {
+                    status["status"] = "ok";
+                }
+                else
+                {
+                    status["status"] = "traveler not ready";
+                }
+
+                self->send(status.dump());
+            },
+            .message = [&](auto* ws, std::string_view message, uWS::OpCode opCode) 
+            {
+                json status;
+
+                std::cout << "Guide: " << message << std::endl;
+
+                if (!excursion->isValid())
+                {
+                    status["status"] = "guide not ready";
+                    self->send(status.dump());
+
+                    return;
+                }
+
+                // excursion->sendtoTraveler(message);
+                logger->info(message);
+            },
+            .drain = [](auto */*ws*/) {
+                    /* Check getBufferedAmount here */
+                std::cout << "Drain " << std::endl;
+            },
+
+            .close = [&](auto */*ws*/, int /*code*/, std::string_view /*message*/) 
+            {
+                    std::cout << "Close " << std::endl;
+
+                    self->Socket = nullptr;
+            }
+            }).listen(9002, [](auto *listen_socket) 
+            {
+                if (listen_socket) {
+                    std::cout << "Thread " << std::this_thread::get_id() << " listening on port 9002" << std::endl;
+                } else {
+                    std::cout << "Thread " << std::this_thread::get_id() << " failed to listen on port 9002" << std::endl;
+                }
+    }).run();
+}
+
+void Guide::run() 
+{
+    Worker = new std::thread(GuideWorker, this);
+    Worker->detach();
+}
+
+bool Excursion::isValid() 
+{
+    return (traveler->isValid() && guide->isValid());
+}
+
+Excursion::Excursion(const std::string& eid) : eid(eid)
+{
+    traveler = new Traveler(this);
+    traveler->run();
+
+    guide = new Guide(this);
+    guide->run();
+}
+
+void Excursion::sendtoGuide(std::string_view msg) 
+{
+    guide->async_send(msg);
+}
+
+void Excursion::sendtoTraveler(std::string_view msg) 
+{
+    traveler->async_send(msg);
+}

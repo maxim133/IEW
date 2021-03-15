@@ -61,7 +61,18 @@
         "mutex": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "bit": "cpp",
+        "codecvt": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "future": "cpp",
+        "ranges": "cpp",
+        "shared_mutex": "cpp",
+        "stop_token": "cpp",
+        "complex": "cpp",
+        "typeindex": "cpp",
+        "*.ipp": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

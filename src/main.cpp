@@ -4,8 +4,11 @@
 #include "Excursion.h"
 #include "Authorization.h"
 #include "Registration.h"
+#include "easylogging++.h"
 
 #include <unistd.h>
+
+INITIALIZE_EASYLOGGINGPP
 
 int main(int, char**) 
 {
@@ -13,7 +16,9 @@ int main(int, char**)
 
     WorldWideInterface* ApplicationClientInterface = CreateWorldWideInterface(InterfaceType::FastCGI, "127.0.0.1:8000");
 
-    //TODO: убрать это в конфигурационный файл
+    Excursion excurtion("unicalexcurtionid");
+
+     //TODO: убрать это в конфигурационный файл
     DataBaseConfig DataBaseInterfaceConfig = 
     {
         1,
@@ -34,7 +39,7 @@ int main(int, char**)
     Command* registration = new Registration(DataBaseInterface);
     commandParser.addCommandParser("/registration", registration);
 
-    ApplicationWorker application(ApplicationClientInterface, commandParser);
+    ApplicationWorker RESTapplication(ApplicationClientInterface, commandParser);
 
-    application.start();
+    RESTapplication.start();
 }
