@@ -11,7 +11,8 @@ endif()
 
 add_definitions(-DLIBUS_NO_SSL)
 add_definitions(-DWITH_LIBDEFLATE=1)
-add_definitions(-DELPP_DEBUG_ERRORS)
+# add_definitions(-DELPP_DEBUG_ERRORS)
+add_definitions(-DELPP_NO_DEFAULT_LOG_FILE)
 
 include_directories("src/")
 include_directories("src/Application/")

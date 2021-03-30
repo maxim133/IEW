@@ -3,6 +3,7 @@
 #include <functional>
 #include <nlohmann/json.hpp>
 #include "EmailVerificator.h"
+#include "easylogging++.h"
 
 using nlohmann::json;
 
@@ -58,24 +59,24 @@ WorldWideMsg& EmailAuthProcedure::getAuthorization(WorldWideMsg& request)
 
     std::cout << "Проверяем пользователя в БД" << std::endl;
 
-    User CheckUser = dbInterface->getUserProfile(email);
-    if (!CheckUser.isValid())
-    {
-        dbAccess.returnDataBaseInterface(std::move(dbInterface));
+    // User CheckUser = dbInterface->getUserProfile(email);
+    // if (dbInterface->checkUserEmail(email))
+    // {
+    //     dbAccess.returnDataBaseInterface(std::move(dbInterface));
 
-        json status =
-            {
-                {"status", "user not found"}
-            };
+    //     json status =
+    //         {
+    //             {"status", "user not found"}
+    //         };
 
-        request.setData(std::move(status.dump()));
+    //     request.setData(std::move(status.dump()));
 
-        std::cout << "Пользователь не найден" << std::endl;
+    //     std::cout << "Пользователь не найден" << std::endl;
 
-        return request;
-    }
+    //     return request;
+    // }
 
-    std::cout << "Пользователь найден" << std::endl;
+    // std::cout << "Пользователь найден" << std::endl;
 
     
 
@@ -88,7 +89,7 @@ WorldWideMsg& UIDAuthProcedure::getAuthorization(WorldWideMsg& request)
     uint64_t uid;
     uint64_t session_id;
 
-    std::cout << "Запрос авторизации по uid" << std::endl;
+    LOG(INFO) << "Запрос авторизации по uid";
 
     try
     {
@@ -97,7 +98,7 @@ WorldWideMsg& UIDAuthProcedure::getAuthorization(WorldWideMsg& request)
     }
     catch(const std::exception& e)
     {
-        std::cout << "Что-то не так с параметрами запроса" << std::endl;
+        LOG(INFO) << "Что-то не так с параметрами запроса";
 
         json status =
             {
@@ -112,24 +113,39 @@ WorldWideMsg& UIDAuthProcedure::getAuthorization(WorldWideMsg& request)
     auto dbInterface = dbAccess.getDataBaseInterface();
     User user = dbInterface->getUserProfile(uid);
 
-    if (user.isValid())
+    if (user.Validity == UserValidity::Valid)
     {
-        std::cout << "Пользователь найден в бд" << std::endl;
+        LOG(INFO) << "Пользователь найден в бд";
 
-        if (user.getSID() != session_id)
+        if (user.sid != session_id)
         {
-            std::cout << "Обновляем session ID" << std::endl;
+            LOG(INFO) << "Обновляем session ID";
 
             dbInterface->UpdateSessionID(uid, session_id);
-
-            dbAccess.returnDataBaseInterface(std::move(dbInterface));
         }
 
         json j =
             {
-                {"FirstName", user.getFirstName()},
-                {"LastName", user.getLastName()},
-                {"email", user.getEmail()},
+                {"user_euid", user.euid},
+                {"user_dbirth", user.user_dbirth},
+                {"user_sx", user.user_sx},
+                {"user_about", user.user_about},
+                {"user_email", user.email},
+                {"user_phone", user.PhoneNumber},
+                {"guide_mode", user.guide_mode},
+                {"guide_pro_start", user.guide_pro_start},
+                {"guide_pro_end", user.guide_pro_end},
+                {"guide_pro_cost", user.guide_pro_cost},
+                {"guide_free", user.guide_free},
+                {"guide_free_for", user.guide_free_for},
+                {"guide_pro_center_x", user.guide_pro_center_x},
+                {"guide_pro_center_y", user.guide_pro_center_y},
+                {"guide_range", user.guide_range},
+                {"guide_h_cost", user.guide_h_cost},
+                {"guide_pro_sched", user.guide_pro_sched},
+                {"guide_push", user.guide_push},
+                {"user_push", user.user_push},
+                {"guide_payment_info", user.guide_payment_info},
                 {"status", "ok"},
             };
 
@@ -137,13 +153,14 @@ WorldWideMsg& UIDAuthProcedure::getAuthorization(WorldWideMsg& request)
 
         request.setStatusCode(200);
         
+        dbAccess.returnDataBaseInterface(std::move(dbInterface));
 
         return request;
     }
 
     dbAccess.returnDataBaseInterface(std::move(dbInterface));
 
-    std::cout << "Такого пользователя не существует" << std::endl;
+    LOG(INFO) << "Такого пользователя не существует";
 
     json status =
          {

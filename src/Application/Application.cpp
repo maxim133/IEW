@@ -1,6 +1,7 @@
 #include "Application.h"
 #include <vector>
 #include <thread>
+#include "easylogging++.h"
 
 ApplicationWorker::ApplicationWorker(WorldWideInterface* ClientInterface, CommandParser& commandParser) : 
 ClientInterface(ClientInterface), parser(commandParser)
@@ -15,9 +16,16 @@ void ApplicationThread(ApplicationWorker* self)
 
     while(1)
     {
-        WorldWideMsg Request = Interface->getRequest();
-        WorldWideMsg& Response = parser.execute(Request);
-        Interface->setResponse(Response);
+        try
+        {
+            WorldWideMsg Request = Interface->getRequest();
+            WorldWideMsg& Response = parser.execute(Request);
+            Interface->setResponse(Response);
+        }
+        catch(const std::runtime_error& e)
+        {
+            LOG(ERROR) << e.what();
+        }
     }
 }
 

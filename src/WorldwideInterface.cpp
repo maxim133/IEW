@@ -57,7 +57,7 @@ WorldWideMsg FastCgiProcessor::getRequest()
     
     if (size > 0)
     {
-        char buffer[512];
+        char buffer[MAX_ContentLength];
 
         int size = atoi(ContentLength);
 

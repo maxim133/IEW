@@ -4,6 +4,8 @@
 #include <ctime>
 #include <algorithm>
 #include <iostream>
+#include "easylogging++.h"
+#include "User.h"
 
 using nlohmann::json;
 
@@ -41,7 +43,7 @@ WorldWideMsg& EmailRegProcedure::getRegistration(WorldWideMsg& request)
 
     request.setStatusCode(200);
 
-    std::cout << "Запрос на регистрацию" << std::endl;
+    LOG(INFO) << "Запрос на регистрацию";
 
     std::string email = query.getParameter("email");
 
@@ -56,14 +58,13 @@ WorldWideMsg& EmailRegProcedure::getRegistration(WorldWideMsg& request)
         request.setStatusCode(400);
 
         dbAccess.returnDataBaseInterface(std::move(dbInterface));
-
-        std::cout << "Ошибка в формате email" << std::endl;
+        
+        LOG(INFO) << "Ошибка в формате email";
 
         return request;
     }  
 
-    User CheckUser = dbInterface->getUserProfile(email);
-    if (CheckUser.isValid())
+    if (dbInterface->checkUserEmail(email))
     {
         json status =
             {
@@ -73,7 +74,7 @@ WorldWideMsg& EmailRegProcedure::getRegistration(WorldWideMsg& request)
         request.setData(std::move(status.dump()));
         dbAccess.returnDataBaseInterface(std::move(dbInterface));
 
-        std::cout << "Такой email уже есть в БД" << std::endl;
+        LOG(INFO) << "Такой email уже есть в БД";
 
         return request;
     }
@@ -81,20 +82,21 @@ WorldWideMsg& EmailRegProcedure::getRegistration(WorldWideMsg& request)
     const std::string& requestMsg = request.getData();
     if (!requestMsg.empty())
     {
-        std::cout << "Получен проверочный код" << std::endl;
+        LOG(INFO) << "Получен проверочный код";
         try
         {
             json request_json = json::parse(requestMsg);
             uint16_t SecretCode = request_json.value("vcode", 0);
             if (SecretCode != 0)
             {
-                std::cout << "Проверяем секретный код" << std::endl;
+                LOG(INFO) << "Проверяем секретный код";
                 WaitingUser user = std::move(RegisteringUsers.checkUser(email, SecretCode));
 
-                std::cout << "Успешно" << std::endl;
+                LOG(INFO) << "Успешно";
 
-                User dbUser(user.get_uid(),
-                            user.get_id());
+                User dbUser;
+                dbUser.uid = std::hash<std::string>{}(user.get_uid());
+                dbUser.email = user.get_id();
 
                 //TODO: добавить обработку исключения от БД
                 dbInterface->addUserProfile(dbUser);
@@ -123,19 +125,17 @@ WorldWideMsg& EmailRegProcedure::getRegistration(WorldWideMsg& request)
 
             dbAccess.returnDataBaseInterface(std::move(dbInterface));
 
-            std::cout << "Ошибка в формате запроса" << std::endl;
-
-            std::cout << e.what() << std::endl;
+            LOG(INFO) << "Ошибка в формате запроса " << e.what();
 
             return request;
         }
         catch (std::out_of_range)
         {
-            std::cout << "Пользователь не существует" << std::endl;
+            LOG(INFO) << "Пользователь не существует";
         }
         catch (std::runtime_error& e)
         {
-            std::cout << "Ошибка проверки кода: " << e.what() << std::endl;
+            LOG(INFO) << "Ошибка проверки кода: " << e.what();
 
             json status =
                 {
@@ -162,13 +162,13 @@ WorldWideMsg& EmailRegProcedure::getRegistration(WorldWideMsg& request)
         RegisteringUsers.addUser(email, SecretCode);
     }
 
-    std::cout << "Отправляем код подтверждения на почту" << std::endl;
+    LOG(INFO) << "Отправляем код подтверждения на почту";
 
     EmailVerificator SecretCodeVerification;
     EmailVerificatorStatus status = SecretCodeVerification.sendVerificationCode(SecretCode, email);
     if (status != EmailVerificatorStatus::OK)
     {
-        std::cout << "Ошибка отправки кода" << std::endl;
+        LOG(INFO) << "Ошибка отправки кода";
 
         json status =
             {
@@ -181,7 +181,7 @@ WorldWideMsg& EmailRegProcedure::getRegistration(WorldWideMsg& request)
         return request;
     }
 
-    std::cout << "Код отправлен. Ждем подтверждения кода от клиента" << std::endl;
+    LOG(INFO) << "Код отправлен. Ждем подтверждения кода от клиента";
 
     request.setData(std::move(StatusOK.dump()));
 
