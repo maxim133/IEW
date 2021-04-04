@@ -199,7 +199,7 @@ void DataBaseInterface::addUserProfile(const User& user)
     "id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,"
     "timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,"
     "user_dbirth VARCHAR(12),"
-    "user_sx VARCHAR(2),"
+    "user_sx VARCHAR(20),"
     "user_about TINYTEXT,"
     "guide_mode BOOL,"
     "guide_pro_start INT UNSIGNED,"
@@ -247,6 +247,13 @@ void DataBaseInterface::updateUserProfile(const User& user)
                     user.guide_free, user.guide_free_for, user.guide_pro_center_x, user.guide_pro_center_y, user.guide_range, user.guide_h_cost, user.guide_pro_sched.dump(), user.guide_push, user.user_push,
                     user.guide_payment_info.dump())
             .execute();
+
+        users->update().set("timestamp", std::time(nullptr))
+                        .set("euid", user.euid)
+                        .set("Email", user.email)
+                        .set("Phone", user.PhoneNumber)
+                        .where("uid = " + std::to_string(user.uid))
+                        .execute();
     }
     catch(const std::exception& e)
     {

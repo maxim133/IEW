@@ -57,6 +57,7 @@ WorldWideMsg FastCgiProcessor::getRequest()
     
     if (size > 0)
     {
+        //TODO: сделать буфер побольше в куче
         char buffer[MAX_ContentLength];
 
         int size = atoi(ContentLength);

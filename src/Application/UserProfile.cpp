@@ -185,6 +185,8 @@ WorldWideMsg& getProfile::execute(WorldWideMsg& request)
             request.setData(std::move(status.dump()));
             request.setStatusCode(400);
         }
+
+         LOG(INFO) << "Профиль пользователя " << uid << " обновлен";
     }
 
     dbAccess.returnDataBaseInterface(std::move(dbInterface));
