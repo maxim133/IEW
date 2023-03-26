@@ -35,8 +35,8 @@ int main(int, char**)
         1,
         "localhost",
         "33060",
-        "root",
-        "ikf593kic"
+        "test",
+        "test"
     };
     DataBaseAccess DataBaseInterface(DataBaseInterfaceConfig);
 
